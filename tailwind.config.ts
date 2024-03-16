@@ -1,5 +1,6 @@
 import type { Config } from 'tailwindcss'
 import colors from 'tailwindcss/colors'
+import tailwindPluginForms from '@tailwindcss/forms'
 
 export default {
   content: ['./app/**/*.{jsx,tsx}'],
@@ -10,5 +11,5 @@ export default {
       },
     },
   },
-  plugins: [],
+  plugins: [tailwindPluginForms],
 } satisfies Config
