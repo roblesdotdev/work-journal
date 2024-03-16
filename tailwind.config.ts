@@ -1,8 +1,8 @@
-import type { Config } from "tailwindcss";
-import colors from "tailwindcss/colors";
+import type { Config } from 'tailwindcss'
+import colors from 'tailwindcss/colors'
 
 export default {
-  content: ["./app/**/*.{jsx,tsx}"],
+  content: ['./app/**/*.{jsx,tsx}'],
   theme: {
     extend: {
       colors: {
@@ -11,4 +11,4 @@ export default {
     },
   },
   plugins: [],
-} satisfies Config;
+} satisfies Config
