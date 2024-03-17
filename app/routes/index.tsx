@@ -1,11 +1,20 @@
 import type { ActionFunctionArgs, MetaFunction } from '@remix-run/node'
-import { Form, redirect } from '@remix-run/react'
+import { Form, json, redirect, useLoaderData } from '@remix-run/react'
+import { db } from '~/utils/db.server'
 
 export const meta: MetaFunction = () => {
   return [
     { title: 'Work Journal' },
     { name: 'description', content: 'Work Journal. Learnings and doings.' },
   ]
+}
+
+export async function loader() {
+  const entries = await db.entry.findMany()
+
+  return json({
+    entries,
+  })
 }
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -16,6 +25,7 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function Index() {
+  const data = useLoaderData<typeof loader>()
   return (
     <div className="px-8 py-20 sm:p-20">
       <h1 className="text-3xl sm:text-5xl">Work Journal</h1>
@@ -81,6 +91,7 @@ export default function Index() {
           </div>
         </Form>
       </div>
+      <pre>{JSON.stringify(data.entries, null, 2)}</pre>
     </div>
   )
 }

@@ -16,6 +16,7 @@
     "validate": "concurrently -c \"auto\" \"npm:typecheck\" \"npm:lint\" \"npm:format\""
   },
   "dependencies": {
+    "@prisma/client": "5.11.0",
     "@remix-run/node": "^2.8.1",
     "@remix-run/react": "^2.8.1",
     "@remix-run/serve": "^2.8.1",
@@ -42,6 +43,7 @@
     "postcss": "^8.4.35",
     "prettier": "^3.2.5",
     "prettier-plugin-tailwindcss": "^0.5.12",
+    "prisma": "^5.11.0",
     "remix-flat-routes": "^0.6.4",
     "tailwindcss": "^3.4.1",
     "typescript": "^5.4.2",
