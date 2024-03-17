@@ -1,6 +1,8 @@
 import type { ActionFunctionArgs, MetaFunction } from '@remix-run/node'
 import { Form, json, redirect, useLoaderData } from '@remix-run/react'
+import { format } from 'date-fns'
 import { db } from '~/utils/db.server'
+import { invariantResponse } from '~/utils/misc'
 
 export const meta: MetaFunction = () => {
   return [
@@ -19,8 +21,25 @@ export async function loader() {
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData()
-  const json = Object.fromEntries(formData)
-  console.log(json)
+  const { date, category, content } = Object.fromEntries(formData)
+  invariantResponse(typeof date === 'string', 'Date is required')
+  invariantResponse(typeof category === 'string', 'Category is required')
+  invariantResponse(typeof content === 'string', 'Content is required')
+
+  const entry = await db.entry.create({
+    select: {
+      id: true,
+    },
+    data: {
+      text: content,
+      date: new Date(date),
+      type: category,
+    },
+  })
+  if (!entry) {
+    return json({ error: true }, { status: 400 })
+  }
+
   return redirect('/')
 }
 
@@ -39,16 +58,22 @@ export default function Index() {
 
           <div>
             <div className="mt-4">
-              <input className="text-gray-700" type="date" name="date" />
+              <input
+                defaultValue={format(new Date(), 'yyyy-MM-dd')}
+                className="text-gray-700"
+                type="date"
+                name="date"
+              />
             </div>
 
-            <div className="mt-2 flex flex-wrap items-center gap-x-6 gap-y-2">
+            <div className="mt-2 flex flex-wrap items-center gap-x-5 gap-y-2">
               <label>
                 <input
                   className="mr-1"
                   type="radio"
                   name="category"
                   value="work"
+                  defaultChecked
                 />
                 Work
               </label>
@@ -77,6 +102,7 @@ export default function Index() {
                 name="content"
                 className="w-full text-gray-700"
                 placeholder="Write your entry..."
+                required
               />
             </div>
 
