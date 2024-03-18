@@ -5,9 +5,10 @@ import {
   redirect,
   useActionData,
   useLoaderData,
+  useNavigation,
 } from '@remix-run/react'
 import { format } from 'date-fns'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import { db } from '~/utils/db.server'
 
@@ -66,6 +67,8 @@ export async function action({ request }: ActionFunctionArgs) {
 export default function Index() {
   const data = useLoaderData<typeof loader>()
   const actionData = useActionData<typeof action>()
+  const navigation = useNavigation()
+  const contentRef = useRef<HTMLTextAreaElement>(null)
   const fieldErrors =
     actionData?.status === 'error' ? actionData.errors.fieldErrors : null
   const formErrors =
@@ -77,6 +80,14 @@ export default function Index() {
   const contentHasErrors = Boolean(fieldErrors?.content?.length)
 
   const isHydrated = useHydrated()
+  const isLoading = navigation.state !== 'idle'
+
+  useEffect(() => {
+    if (!isLoading && contentRef.current) {
+      contentRef.current.value = ''
+      contentRef.current.focus()
+    }
+  }, [isLoading])
 
   return (
     <div className="px-8 py-20 sm:p-20">
@@ -94,7 +105,7 @@ export default function Index() {
         >
           <p className="italic">Create a new entry</p>
 
-          <div>
+          <fieldset disabled={isLoading} className="disabled:animate-pulse">
             <div className="mt-4 space-y-2">
               <input
                 defaultValue={format(new Date(), 'yyyy-MM-dd')}
@@ -152,6 +163,7 @@ export default function Index() {
 
             <div className="mt-2">
               <textarea
+                ref={contentRef}
                 name="content"
                 className="w-full text-gray-700"
                 placeholder="Write your entry..."
@@ -163,10 +175,11 @@ export default function Index() {
               ) : null}
             </div>
 
-            <div className="mt-2">
+            <div className="mt-2 flex items-center justify-end">
               <button
                 type="submit"
-                className="bg-blue-600 px-4 py-2 font-medium text-white"
+                className="bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50"
+                disabled={isLoading}
               >
                 Save
               </button>
@@ -175,7 +188,7 @@ export default function Index() {
             {formHasErrors ? (
               <ErrorList id="form-err" errors={formErrors} />
             ) : null}
-          </div>
+          </fieldset>
         </Form>
       </div>
       <pre>{JSON.stringify(data.entries, null, 2)}</pre>
