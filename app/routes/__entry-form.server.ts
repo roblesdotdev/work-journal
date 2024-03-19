@@ -4,7 +4,8 @@ import { json, redirect } from '@remix-run/node'
 import { db } from '~/utils/db.server'
 import { EntrySchema } from './__entry-form'
 
-export async function action({ request }: ActionFunctionArgs) {
+export async function action({ params, request }: ActionFunctionArgs) {
+  const { entryId } = params
   const formData = await request.formData()
   const submission = parseWithZod(formData, { schema: EntrySchema })
 
@@ -13,18 +14,33 @@ export async function action({ request }: ActionFunctionArgs) {
       status: 400,
     })
   }
-  const { content, date, category } = submission.value
+  const { content, date, category, intent } = submission.value
 
-  await db.entry.create({
-    select: {
-      id: true,
-    },
-    data: {
-      text: content,
-      date: date,
-      type: category,
-    },
-  })
+  switch (intent) {
+    case 'create':
+      await db.entry.create({
+        select: {
+          id: true,
+        },
+        data: {
+          text: content,
+          date: date,
+          type: category,
+        },
+      })
+      return redirect('/')
 
-  return redirect('/')
+    case 'edit': {
+      const updatedEntry = await db.entry.update({
+        where: { id: entryId },
+        select: { id: true },
+        data: {
+          date,
+          text: content,
+          type: category,
+        },
+      })
+      return redirect(`/entries/${updatedEntry.id}/edit`)
+    }
+  }
 }

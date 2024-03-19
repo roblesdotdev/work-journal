@@ -55,7 +55,8 @@ export default function Index() {
 
   return (
     <div>
-      <div className="my-7 max-w-2xl border p-2">
+      <div className="my-7 max-w-2xl border p-3">
+        <p className="italic">Create a new entry</p>
         <EntryForm />
       </div>
       <div className="mt-12 space-y-8">

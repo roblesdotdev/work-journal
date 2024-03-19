@@ -10,6 +10,7 @@ import { format } from 'date-fns'
 import { useEffect, useRef } from 'react'
 import { type action } from './__entry-form.server'
 import { z } from 'zod'
+import type { Entry } from '@prisma/client'
 
 export const EntrySchema = z.object({
   date: z.date(),
@@ -17,13 +18,23 @@ export const EntrySchema = z.object({
     invalid_type_error: 'Please select a category',
   }),
   content: z.string().min(15).max(140),
+  intent: z.enum(['create', 'edit']),
 })
 
-export default function EntryForm() {
+type EntryFormProps = {
+  entry?: Omit<Entry, 'date'> & { date: string }
+  intent?: 'create' | 'edit'
+}
+
+export default function EntryForm({
+  entry,
+  intent = 'create',
+}: EntryFormProps) {
   const contentRef = useRef<HTMLTextAreaElement>(null)
   const actionData = useActionData<typeof action>()
   const navigation = useNavigation()
   const isLoading = navigation.state !== 'idle'
+  const date = entry?.date ?? new Date()
 
   const [form, fields] = useForm({
     id: 'entry-form',
@@ -33,27 +44,26 @@ export default function EntryForm() {
       return parseWithZod(formData, { schema: EntrySchema })
     },
     defaultValue: {
-      date: format(new Date(), 'yyyy-MM-dd'),
-      category: 'work',
-      content: '',
+      date: format(date, 'yyyy-MM-dd'),
+      category: entry?.type ?? 'work',
+      content: entry?.text ?? '',
+      intent,
     },
   })
 
   useEffect(() => {
-    if (!isLoading && contentRef.current) {
+    if (intent !== 'edit' && !isLoading && contentRef.current) {
       contentRef.current.value = ''
       contentRef.current.focus()
     }
-  }, [isLoading])
+  }, [isLoading, intent])
 
   return (
-    <Form className="p-2" method="post" {...getFormProps(form)}>
-      <p className="italic">Create a new entry</p>
-
+    <Form method="post" {...getFormProps(form)}>
       <fieldset disabled={isLoading} className="disabled:animate-pulse">
+        <input {...getInputProps(fields.intent, { type: 'hidden' })} />
         <div className="mt-4 space-y-2">
           <input
-            defaultValue={format(new Date(), 'yyyy-MM-dd')}
             className="text-gray-700"
             {...getInputProps(fields.date, { type: 'date' })}
           />
@@ -64,7 +74,7 @@ export default function EntryForm() {
           <div
             className="flex flex-wrap items-center gap-x-5 gap-y-2"
             role="radiogroup"
-            aria-labelledby="category-err"
+            aria-labelledby={fields.category.errorId}
           >
             {['work', 'learning', 'interest-things'].map(value => (
               <label key={value}>
@@ -72,9 +82,9 @@ export default function EntryForm() {
                   type="radio"
                   name={fields.category.name}
                   value={value}
+                  className="mr-1"
                   defaultChecked={fields.category.initialValue === value}
                 />
-
                 {value}
               </label>
             ))}
