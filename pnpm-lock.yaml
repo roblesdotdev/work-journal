@@ -37,6 +37,12 @@ dependencies:
     version: 3.22.4
 
 devDependencies:
+  '@conform-to/react':
+    specifier: ^1.0.4
+    version: 1.0.4(react@18.2.0)
+  '@conform-to/zod':
+    specifier: ^1.0.4
+    version: 1.0.4(zod@3.22.4)
   '@remix-run/dev':
     specifier: ^2.8.1
     version: 2.8.1(@remix-run/serve@2.8.1)(typescript@5.4.2)(vite@5.1.6)
@@ -455,6 +461,28 @@ packages:
       '@babel/helper-string-parser': 7.23.4
       '@babel/helper-validator-identifier': 7.22.20
       to-fast-properties: 2.0.0
+    dev: true
+
+  /@conform-to/dom@1.0.4:
+    resolution: {integrity: sha512-XT5RxFvNxZZ9LAljslVDfic8pG47j6Kh0JNgBMqwOiaURKZXKRD9L0PPAmsMS8JOYmP6yI42eqfLbRPPoufhAQ==}
+    dev: true
+
+  /@conform-to/react@1.0.4(react@18.2.0):
+    resolution: {integrity: sha512-+p+6Z9ZdEGQjxNMTk79H5HQ/C46PzpTqn1HyHOKquXrXFhjrRILJScAu2FD7AtZLIvehfucCkfYn7W0in6SMgg==}
+    peerDependencies:
+      react: '>=18'
+    dependencies:
+      '@conform-to/dom': 1.0.4
+      react: 18.2.0
+    dev: true
+
+  /@conform-to/zod@1.0.4(zod@3.22.4):
+    resolution: {integrity: sha512-CXKzrkmN118fp0VYlzCesKa8JODB5P/K8/Jnio+yREdqQB2EjDAz39IJUa1fjBoEVjvAGfBetj/2d97f4LlSnQ==}
+    peerDependencies:
+      zod: ^3.21.0
+    dependencies:
+      '@conform-to/dom': 1.0.4
+      zod: 3.22.4
     dev: true
 
   /@emotion/hash@0.9.1:
@@ -5505,7 +5533,6 @@ packages:
     engines: {node: '>=0.10.0'}
     dependencies:
       loose-envify: 1.4.0
-    dev: false
 
   /read-cache@1.0.0:
     resolution: {integrity: sha512-Owdv/Ft7IjOgm/i0xvNDZ1LrRANRfew4b2prF3OWMQLxLfu3bS8FVhCsrSCMK4lR56Y9ya+AThoTpDCTxCmpRA==}
@@ -6759,7 +6786,6 @@ packages:
 
   /zod@3.22.4:
     resolution: {integrity: sha512-iC+8Io04lddc+mVqQ9AZ7OQ2MrUKGN+oIQyq1vemgt46jwCwLfhq7/pwnBnNXXXZb8VTVLKwp9EDkx+ryxIWmg==}
-    dev: false
 
   /zwitch@2.0.4:
     resolution: {integrity: sha512-bXE4cR/kVZhKZX/RjPEflHaKVhUVl85noU3v6b8apfQEc1x4A+zBxjZ4lN8LqGd6WZ3dl98pY4o717VFmoPp+A==}

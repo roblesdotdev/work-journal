@@ -1,5 +1,12 @@
 import type { Record } from '@prisma/client/runtime/library'
 import type { ActionFunctionArgs, MetaFunction } from '@remix-run/node'
+import { getZodConstraint, parseWithZod } from '@conform-to/zod'
+import {
+  getFormProps,
+  getInputProps,
+  getTextareaProps,
+  useForm,
+} from '@conform-to/react'
 import {
   Form,
   Link,
@@ -10,9 +17,9 @@ import {
   useNavigation,
 } from '@remix-run/react'
 import { format, parseISO, startOfWeek } from 'date-fns'
-import { useEffect, useRef, useState } from 'react'
 import { z } from 'zod'
 import { db } from '~/utils/db.server'
+import { useEffect, useRef } from 'react'
 
 export const meta: MetaFunction = () => {
   return [
@@ -42,18 +49,14 @@ const EntrySchema = z.object({
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData()
-  const result = EntrySchema.safeParse({
-    date: new Date(formData.get('date') as string),
-    category: formData.get('category'),
-    content: formData.get('content'),
-  })
+  const submission = parseWithZod(formData, { schema: EntrySchema })
 
-  if (!result.success) {
-    return json({ status: 'error', errors: result.error.flatten() } as const, {
+  if (submission.status !== 'success') {
+    return json({ status: 'error', submission } as const, {
       status: 400,
     })
   }
-  const { content, date, category } = result.data
+  const { content, date, category } = submission.value
 
   await db.entry.create({
     select: {
@@ -70,22 +73,32 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function Index() {
+  const contentRef = useRef<HTMLTextAreaElement>(null)
   const data = useLoaderData<typeof loader>()
   const actionData = useActionData<typeof action>()
   const navigation = useNavigation()
-  const contentRef = useRef<HTMLTextAreaElement>(null)
-  const fieldErrors =
-    actionData?.status === 'error' ? actionData.errors.fieldErrors : null
-  const formErrors =
-    actionData?.status === 'error' ? actionData.errors.formErrors : null
-
-  const formHasErrors = Boolean(formErrors?.length)
-  const dateHasErrors = Boolean(fieldErrors?.date?.length)
-  const categoryHasErrors = Boolean(fieldErrors?.category?.length)
-  const contentHasErrors = Boolean(fieldErrors?.content?.length)
-
-  const isHydrated = useHydrated()
   const isLoading = navigation.state !== 'idle'
+
+  const [form, fields] = useForm({
+    id: 'entry-form',
+    constraint: getZodConstraint(EntrySchema),
+    lastResult: actionData,
+    onValidate({ formData }) {
+      return parseWithZod(formData, { schema: EntrySchema })
+    },
+    defaultValue: {
+      date: format(new Date(), 'yyyy-MM-dd'),
+      category: 'work',
+      content: '',
+    },
+  })
+
+  useEffect(() => {
+    if (!isLoading && contentRef.current) {
+      contentRef.current.value = ''
+      contentRef.current.focus()
+    }
+  }, [isLoading])
 
   const entriesByWeek = data.entries.reduce<
     Record<string, typeof data.entries>
@@ -112,22 +125,10 @@ export default function Index() {
       ),
     }))
 
-  useEffect(() => {
-    if (!isLoading && contentRef.current) {
-      contentRef.current.value = ''
-      contentRef.current.focus()
-    }
-  }, [isLoading])
-
   return (
     <div>
       <div className="my-8 max-w-2xl border p-2">
-        <Form
-          className="p-2"
-          method="post"
-          aria-labelledby={formHasErrors ? 'form-err' : undefined}
-          noValidate={isHydrated}
-        >
+        <Form className="p-2" method="post" {...getFormProps(form)}>
           <p className="italic">Create a new entry</p>
 
           <fieldset disabled={isLoading} className="disabled:animate-pulse">
@@ -135,14 +136,9 @@ export default function Index() {
               <input
                 defaultValue={format(new Date(), 'yyyy-MM-dd')}
                 className="text-gray-700"
-                type="date"
-                name="date"
-                aria-labelledby={dateHasErrors ? 'date-err' : undefined}
-                required
+                {...getInputProps(fields.date, { type: 'date' })}
               />
-              {dateHasErrors ? (
-                <ErrorList id="date-err" errors={fieldErrors?.date} />
-              ) : null}
+              <ErrorList id={fields.date.errorId} errors={fields.date.errors} />
             </div>
 
             <div className="mt-2">
@@ -151,53 +147,36 @@ export default function Index() {
                 role="radiogroup"
                 aria-labelledby="category-err"
               >
-                <label>
-                  <input
-                    className="mr-1"
-                    type="radio"
-                    name="category"
-                    value="work"
-                    required
-                    defaultChecked
-                  />
-                  Work
-                </label>
-                <label>
-                  <input
-                    className="mr-1"
-                    type="radio"
-                    name="category"
-                    value="learning"
-                  />
-                  Learning
-                </label>
-                <label>
-                  <input
-                    className="mr-1"
-                    type="radio"
-                    name="category"
-                    value="interest-things"
-                  />
-                  Interesting things
-                </label>
-                {categoryHasErrors ? (
-                  <ErrorList id="category-err" errors={fieldErrors?.category} />
-                ) : null}
+                {['work', 'learning', 'interest-things'].map(value => (
+                  <label key={value}>
+                    <input
+                      type="radio"
+                      name={fields.category.name}
+                      value={value}
+                      defaultChecked={fields.category.initialValue === value}
+                    />
+
+                    {value}
+                  </label>
+                ))}
+                <ErrorList
+                  id={fields.category.errorId}
+                  errors={fields.category.errors}
+                />
               </div>
             </div>
 
             <div className="mt-2">
               <textarea
-                ref={contentRef}
-                name="content"
                 className="w-full text-gray-700"
                 placeholder="Write your entry..."
-                aria-labelledby={contentHasErrors ? 'content-err' : undefined}
-                required
+                ref={contentRef}
+                {...getTextareaProps(fields.content)}
               />
-              {contentHasErrors ? (
-                <ErrorList id="content-err" errors={fieldErrors?.content} />
-              ) : null}
+              <ErrorList
+                id={fields.content.errorId}
+                errors={fields.content.errors}
+              />
             </div>
 
             <div className="mt-2 flex items-center justify-end">
@@ -210,9 +189,7 @@ export default function Index() {
               </button>
             </div>
 
-            {formHasErrors ? (
-              <ErrorList id="form-err" errors={formErrors} />
-            ) : null}
+            <ErrorList id={form.errorId} errors={form.errors} />
           </fieldset>
         </Form>
       </div>
@@ -302,10 +279,4 @@ function ErrorList({ id, errors }: { id?: string; errors?: ListOfErrors }) {
       ))}
     </ul>
   ) : null
-}
-
-function useHydrated() {
-  const [hydrated, setHydrated] = useState(false)
-  useEffect(() => setHydrated(true), [])
-  return hydrated
 }
