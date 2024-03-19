@@ -2,6 +2,7 @@ import type { Record } from '@prisma/client/runtime/library'
 import type { ActionFunctionArgs, MetaFunction } from '@remix-run/node'
 import {
   Form,
+  Link,
   json,
   redirect,
   useActionData,
@@ -119,12 +120,7 @@ export default function Index() {
   }, [isLoading])
 
   return (
-    <div className="px-8 py-20 sm:p-20">
-      <h1 className="text-3xl sm:text-5xl">Work Journal</h1>
-      <p className="mt-2 text-lg text-gray-400">
-        Learnings and doings. Updated weekly.
-      </p>
-
+    <div>
       <div className="my-8 max-w-2xl border p-2">
         <Form
           className="p-2"
@@ -232,7 +228,11 @@ export default function Index() {
                   <p className="mt-2 font-medium">Work</p>
                   <ul className="ml-8 list-disc">
                     {week.work.map(entry => (
-                      <li key={entry.id}>{entry.text}</li>
+                      <EntryListItem
+                        key={entry.id}
+                        id={entry.id}
+                        text={entry.text}
+                      />
                     ))}
                   </ul>
                 </div>
@@ -242,7 +242,11 @@ export default function Index() {
                   <p className="mt-2 font-medium">Learning</p>
                   <ul className="ml-8 list-disc">
                     {week.learnings.map(entry => (
-                      <li key={entry.id}>{entry.text}</li>
+                      <EntryListItem
+                        key={entry.id}
+                        id={entry.id}
+                        text={entry.text}
+                      />
                     ))}
                   </ul>
                 </div>
@@ -252,7 +256,11 @@ export default function Index() {
                   <p className="mt-2 font-medium">Interesting things</p>
                   <ul className="ml-8 list-disc">
                     {week.interestingThings.map(entry => (
-                      <li key={entry.id}>{entry.text}</li>
+                      <EntryListItem
+                        key={entry.id}
+                        id={entry.id}
+                        text={entry.text}
+                      />
                     ))}
                   </ul>
                 </div>
@@ -268,6 +276,17 @@ export default function Index() {
         )}
       </div>
     </div>
+  )
+}
+
+function EntryListItem({ id, text }: { id: string; text: string }) {
+  return (
+    <li className="flex items-center gap-2">
+      {text}
+      <Link to={`/entries/${id}/edit`} className="text-blue-400 underline">
+        Edit
+      </Link>
+    </li>
   )
 }
 
