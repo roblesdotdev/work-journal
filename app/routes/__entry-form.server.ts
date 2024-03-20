@@ -2,7 +2,7 @@ import { parseWithZod } from '@conform-to/zod'
 import type { ActionFunctionArgs } from '@remix-run/node'
 import { json, redirect } from '@remix-run/node'
 import { db } from '~/utils/db.server'
-import { EntrySchema } from './__entry-form'
+import { EntryFormIntents, EntrySchema } from './__entry-form'
 
 export async function action({ params, request }: ActionFunctionArgs) {
   const { entryId } = params
@@ -17,7 +17,7 @@ export async function action({ params, request }: ActionFunctionArgs) {
   const { content, date, category, intent } = submission.value
 
   switch (intent) {
-    case 'create':
+    case EntryFormIntents.Create:
       await db.entry.create({
         select: {
           id: true,
@@ -30,7 +30,7 @@ export async function action({ params, request }: ActionFunctionArgs) {
       })
       return redirect('/')
 
-    case 'edit': {
+    case EntryFormIntents.Update: {
       const updatedEntry = await db.entry.update({
         where: { id: entryId },
         select: { id: true },
@@ -42,5 +42,9 @@ export async function action({ params, request }: ActionFunctionArgs) {
       })
       return redirect(`/entries/${updatedEntry.id}/edit`)
     }
+
+    case EntryFormIntents.Delete:
+      await db.entry.delete({ where: { id: entryId } })
+      return redirect('/')
   }
 }

@@ -30,7 +30,7 @@ export default function EditEntryPage() {
       <Link to="..">Back</Link>
       <div className="max-w-2xl py-4">
         <p className="italic">Edit entry</p>
-        <EntryForm entry={data.entry} intent="edit" />
+        <EntryForm entry={data.entry} />
       </div>
     </div>
   )

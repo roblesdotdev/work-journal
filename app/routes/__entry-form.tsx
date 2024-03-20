@@ -12,24 +12,26 @@ import { type action } from './__entry-form.server'
 import { z } from 'zod'
 import type { Entry } from '@prisma/client'
 
+export enum EntryFormIntents {
+  Create = 'create',
+  Update = 'update',
+  Delete = 'delete',
+}
+
 export const EntrySchema = z.object({
   date: z.date(),
   category: z.enum(['work', 'learning', 'interest-things'], {
     invalid_type_error: 'Please select a category',
   }),
   content: z.string().min(15).max(140),
-  intent: z.enum(['create', 'edit']),
+  intent: z.nativeEnum(EntryFormIntents),
 })
 
 type EntryFormProps = {
   entry?: Omit<Entry, 'date'> & { date: string }
-  intent?: 'create' | 'edit'
 }
 
-export default function EntryForm({
-  entry,
-  intent = 'create',
-}: EntryFormProps) {
+export default function EntryForm({ entry }: EntryFormProps) {
   const contentRef = useRef<HTMLTextAreaElement>(null)
   const actionData = useActionData<typeof action>()
   const navigation = useNavigation()
@@ -47,21 +49,19 @@ export default function EntryForm({
       date: format(date, 'yyyy-MM-dd'),
       category: entry?.type ?? 'work',
       content: entry?.text ?? '',
-      intent,
     },
   })
 
   useEffect(() => {
-    if (intent !== 'edit' && !isLoading && contentRef.current) {
+    if (!entry && !isLoading && contentRef.current) {
       contentRef.current.value = ''
       contentRef.current.focus()
     }
-  }, [isLoading, intent])
+  }, [isLoading, entry])
 
   return (
     <Form method="post" {...getFormProps(form)}>
       <fieldset disabled={isLoading} className="disabled:animate-pulse">
-        <input {...getInputProps(fields.intent, { type: 'hidden' })} />
         <div className="mt-4 space-y-2">
           <input
             className="text-gray-700"
@@ -108,9 +108,23 @@ export default function EntryForm({
           />
         </div>
 
-        <div className="mt-2 flex items-center justify-end">
+        <div className="mt-2 flex items-center justify-end gap-4">
+          {entry ? (
+            <button
+              type="submit"
+              name="intent"
+              value={EntryFormIntents.Delete}
+              className="bg-red-500 px-4 py-2 font-medium text-white disabled:opacity-50"
+              disabled={isLoading}
+            >
+              Delete
+            </button>
+          ) : null}
+
           <button
             type="submit"
+            name="intent"
+            value={entry ? EntryFormIntents.Update : EntryFormIntents.Create}
             className="bg-blue-600 px-4 py-2 font-medium text-white disabled:opacity-50"
             disabled={isLoading}
           >
