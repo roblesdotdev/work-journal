@@ -11,6 +11,7 @@ import { useEffect, useRef } from 'react'
 import { type action } from './__entry-form.server'
 import { z } from 'zod'
 import type { Entry } from '@prisma/client'
+import { ErrorList } from '~/components/forms'
 
 export enum EntryFormIntents {
   Create = 'create',
@@ -136,18 +137,4 @@ export default function EntryForm({ entry }: EntryFormProps) {
       </fieldset>
     </Form>
   )
-}
-
-type ListOfErrors = Array<string | null | undefined> | null | undefined
-
-function ErrorList({ id, errors }: { id?: string; errors?: ListOfErrors }) {
-  return errors?.length ? (
-    <ul id={id}>
-      {errors.map(error => (
-        <li key={error} className="text-xs text-red-400">
-          {error}
-        </li>
-      ))}
-    </ul>
-  ) : null
 }
