@@ -1,15 +1,26 @@
 import { getFormProps, getInputProps, useForm } from '@conform-to/react'
 import { getZodConstraint, parseWithZod } from '@conform-to/zod'
-import type { ActionFunctionArgs, MetaFunction } from '@remix-run/node'
-import { Form, json } from '@remix-run/react'
+import type {
+  ActionFunctionArgs,
+  LoaderFunctionArgs,
+  MetaFunction,
+} from '@remix-run/node'
+import { Form, json, redirect, useActionData } from '@remix-run/react'
 import { z } from 'zod'
 import { ErrorList } from '~/components/forms'
+import { sessionStorage } from '~/utils/session.server'
 
 export const meta: MetaFunction = () => [{ title: 'Login' }]
 
-export async function loader() {
-  // TODO: redirect if is logged in
-  return null
+export async function loader({ request }: LoaderFunctionArgs) {
+  const cookieSession = await sessionStorage.getSession(
+    request.headers.get('cookie'),
+  )
+  const userId = cookieSession.get('userId')
+  if (userId && userId === 'logged_user') {
+    return redirect('/')
+  }
+  return json({})
 }
 
 const LoginFormSchema = z.object({
@@ -20,24 +31,48 @@ const LoginFormSchema = z.object({
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData()
 
-  const submission = parseWithZod(formData, { schema: LoginFormSchema })
+  const submission = await parseWithZod(formData, {
+    schema: intent =>
+      LoginFormSchema.transform(async (data, ctx) => {
+        if (intent !== null) return { ...data, user: null }
 
-  if (submission.status !== 'success') {
+        if (data.email !== 'user@email.com' && data.password !== 'password') {
+          ctx.addIssue({
+            code: z.ZodIssueCode.custom,
+            message: 'Invalid username or password',
+          })
+          return z.NEVER
+        }
+        return { ...data, user: { id: 'logged_user' } }
+      }),
+    async: true,
+  })
+
+  if (submission.status !== 'success' || !submission.value.user) {
     return json(
       { result: submission.reply({ hideFields: ['password'] }) },
       { status: submission.status === 'error' ? 400 : 200 },
     )
   }
 
-  // TODO: authenticate with credentials
-  // TODO: handle session
+  const { user } = submission.value
+  const cookieSession = await sessionStorage.getSession(
+    request.headers.get('cookie'),
+  )
+  cookieSession.set('userId', user.id)
 
-  return null
+  return redirect('/', {
+    headers: {
+      'set-cookie': await sessionStorage.commitSession(cookieSession),
+    },
+  })
 }
 
 export default function LoginPage() {
+  const actionData = useActionData<typeof action>()
   const [form, fields] = useForm({
     id: 'login-form',
+    lastResult: actionData?.result,
     constraint: getZodConstraint(LoginFormSchema),
     onValidate({ formData }) {
       return parseWithZod(formData, { schema: LoginFormSchema })
