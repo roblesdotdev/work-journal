@@ -12,17 +12,13 @@ import {
 } from '@remix-run/react'
 import type { LoaderFunctionArgs } from '@remix-run/node'
 import { json } from '@remix-run/node'
-import { sessionStorage } from './utils/session.server'
+import { getUserId } from './utils/auth.server'
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const cookieSession = await sessionStorage.getSession(
-    request.headers.get('cookie'),
-  )
-  const userId = cookieSession.get('userId')
+  const userId = await getUserId(request)
 
   const isLoggedIn = Boolean(userId)
 
-  // TODO: return user info
   return json({
     isLoggedIn,
   })

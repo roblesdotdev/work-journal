@@ -8,18 +8,13 @@ import type {
 import { Form, json, redirect, useActionData } from '@remix-run/react'
 import { z } from 'zod'
 import { ErrorList } from '~/components/forms'
+import { login, requireAnonymous } from '~/utils/auth.server'
 import { sessionStorage } from '~/utils/session.server'
 
 export const meta: MetaFunction = () => [{ title: 'Login' }]
 
 export async function loader({ request }: LoaderFunctionArgs) {
-  const cookieSession = await sessionStorage.getSession(
-    request.headers.get('cookie'),
-  )
-  const userId = cookieSession.get('userId')
-  if (userId && userId === 'logged_user') {
-    return redirect('/')
-  }
+  await requireAnonymous(request)
   return json({})
 }
 
@@ -36,14 +31,15 @@ export async function action({ request }: ActionFunctionArgs) {
       LoginFormSchema.transform(async (data, ctx) => {
         if (intent !== null) return { ...data, user: null }
 
-        if (data.email !== 'user@email.com' && data.password !== 'password') {
+        const user = await login({ email: data.email, password: data.password })
+        if (!user) {
           ctx.addIssue({
             code: z.ZodIssueCode.custom,
             message: 'Invalid username or password',
           })
           return z.NEVER
         }
-        return { ...data, user: { id: 'logged_user' } }
+        return { ...data, user }
       }),
     async: true,
   })

@@ -3,8 +3,10 @@ import type { ActionFunctionArgs } from '@remix-run/node'
 import { json, redirect } from '@remix-run/node'
 import { db } from '~/utils/db.server'
 import { EntryFormIntents, EntrySchema } from './__entry-form'
+import { requireUserId } from '~/utils/auth.server'
 
 export async function action({ params, request }: ActionFunctionArgs) {
+  const userId = await requireUserId(request)
   const { entryId } = params
   const formData = await request.formData()
   const submission = parseWithZod(formData, { schema: EntrySchema })
@@ -26,6 +28,7 @@ export async function action({ params, request }: ActionFunctionArgs) {
           text: content,
           date: date,
           type: category,
+          ownerId: userId,
         },
       })
       return redirect('/')
