@@ -5,7 +5,14 @@ import type {
   LoaderFunctionArgs,
   MetaFunction,
 } from '@remix-run/node'
-import { Form, json, redirect, useActionData } from '@remix-run/react'
+import {
+  Form,
+  json,
+  redirect,
+  useActionData,
+  useSearchParams,
+} from '@remix-run/react'
+import { safeRedirect } from 'remix-utils/safe-redirect'
 import { z } from 'zod'
 import { ErrorList } from '~/components/forms'
 import { login, requireAnonymous } from '~/utils/auth.server'
@@ -21,6 +28,7 @@ export async function loader({ request }: LoaderFunctionArgs) {
 const LoginFormSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6).max(32),
+  redirectTo: z.string().optional(),
 })
 
 export async function action({ request }: ActionFunctionArgs) {
@@ -51,13 +59,13 @@ export async function action({ request }: ActionFunctionArgs) {
     )
   }
 
-  const { user } = submission.value
+  const { user, redirectTo } = submission.value
   const cookieSession = await sessionStorage.getSession(
     request.headers.get('cookie'),
   )
   cookieSession.set('userId', user.id)
 
-  return redirect('/', {
+  return redirect(safeRedirect(redirectTo), {
     headers: {
       'set-cookie': await sessionStorage.commitSession(cookieSession),
     },
@@ -65,10 +73,13 @@ export async function action({ request }: ActionFunctionArgs) {
 }
 
 export default function LoginPage() {
+  const [searchParams] = useSearchParams()
+  const redirectTo = searchParams.get('redirectTo')
   const actionData = useActionData<typeof action>()
   const [form, fields] = useForm({
     id: 'login-form',
     lastResult: actionData?.result,
+    defaultValue: { redirectTo },
     constraint: getZodConstraint(LoginFormSchema),
     onValidate({ formData }) {
       return parseWithZod(formData, { schema: LoginFormSchema })
@@ -111,6 +122,8 @@ export default function LoginPage() {
               />
             </div>
           </fieldset>
+
+          <input {...getInputProps(fields.redirectTo, { type: 'hidden' })} />
 
           <ErrorList id={form.errorId} errors={form.errors} />
 

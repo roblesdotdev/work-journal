@@ -3,10 +3,12 @@ import { Link, json, useLoaderData } from '@remix-run/react'
 import { db } from '~/utils/db.server'
 import { invariantResponse } from '~/utils/misc'
 import EntryForm from './__entry-form'
+import { requireUserId } from '~/utils/auth.server'
 
 export { action } from './__entry-form.server'
 
-export async function loader({ params }: LoaderFunctionArgs) {
+export async function loader({ request, params }: LoaderFunctionArgs) {
+  await requireUserId(request)
   const { entryId } = params
   invariantResponse(typeof entryId === 'string', 'Entry id is required')
 
